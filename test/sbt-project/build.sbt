@@ -1,5 +1,5 @@
 lazy val commonSettings = Def.settings(
-  scalaVersion := "3.2.2",
+  scalaVersion := "3.7.2",
   scalaJSUseMainModuleInitializer := true,
 )
 

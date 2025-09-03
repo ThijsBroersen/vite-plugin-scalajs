@@ -1,126 +1,224 @@
-# vite-plugin-scalajs
+# Vite Plugin for Scala.js
 
-A [Vite](https://vitejs.dev/) plugin for [Scala.js](https://www.scala-js.org/).
+A Vite plugin that integrates Scala.js projects built with either SBT or Mill build tools. This plugin automatically watches your Scala.js output directories and triggers Vite reloads when files change, making development seamless.
 
-## Usage
+## Features
 
-We assume that you have an existing Vite and Scala.js sbt project.
-If not, [follow the accompanying tutorial](https://www.scala-js.org/doc/tutorial/scalajs-vite.html).
+- **Multi-build tool support**: Works with both SBT and Mill
+- **Automatic file watching**: Watches Scala.js output directories and triggers Vite reloads
+- **Development and production modes**: Supports both fast and full linking
+- **Flexible configuration**: Multiple projects with different build tools
+- **Throttled reloads**: Prevents excessive reloads during rapid file changes
+- **Backward compatibility**: Maintains compatibility with existing SBT-only setups
 
-Install the plugin as a development dependency:
+## Installation
 
-```shell
-$ npm install -D @scala-js/vite-plugin-scalajs
-```
+IMPORTANT: there is NO published artifact for this FORKED repo yet! To try this repo clone it and import relative `import scalajsPlugin from '../vite-plugin-scalajs/src/index.js'`
 
-Tell Vite to use the plugin in `vite.config.js`:
+## Quick Start
 
-```javascript
-import { defineConfig } from "vite";
-import scalaJSPlugin from "@scala-js/vite-plugin-scalajs";
+### SBT Project
 
-export default defineConfig({
-  plugins: [scalaJSPlugin()],
-});
-```
+```typescript
+import { defineConfig } from 'vite';
+import { scalajsPlugin } from '@scala-js/vite-plugin-scalajs';
 
-Finally, import the Scala.js output from a `.js` or `.ts` file with
-
-```javascript
-import 'scalajs:main.js';
-```
-
-which will execute the main method of the Scala.js application.
-
-The sbt project must at least be configured to use ES modules.
-For the best feedback loop with Vite, we recommend to emit small modules for application code.
-If your application lives in the `my.app` package, configure the sbt project with the following settings:
-
-```scala
-scalaJSLinkerConfig ~= {
-  _.withModuleKind(ModuleKind.ESModule)
-    .withModuleSplitStyle(
-      ModuleSplitStyle.SmallModulesFor(List("my.app")))
-},
-```
-
-In development mode, use two terminals in parallel:
-
-* One with `$ npm run dev`.
-* One with `$ sbt '~fastLinkJS'` (or a more precise version such as `$ sbt '~theJSProject/fastLinkJS`).
-
-For the production build, `$ npm run build` is enough.
-
-## Configuration
-
-The plugin supports the following configuration options:
-
-```javascript
 export default defineConfig({
   plugins: [
-    scalaJSPlugin({
-      // path to the directory containing the sbt build
-      // default: '.'
-      cwd: '.',
-
-      // sbt project ID from within the sbt build to get fast/fullLinkJS from
-      // default: the root project of the sbt build
-      projectID: 'client',
-
-      // URI prefix of imports that this plugin catches (without the trailing ':')
-      // default: 'scalajs' (so the plugin recognizes URIs starting with 'scalajs:')
-      uriPrefix: 'scalajs',
-    }),
-  ],
+    scalajsPlugin({
+      projects: [
+        {
+          projectID: 'myProject',
+          buildTool: {
+            tool: 'sbt'
+          }
+        }
+      ]
+    })
+  ]
 });
 ```
 
-## Importing `@JSExportTopLevel` Scala.js members
+### Mill Project
 
-`@JSExportTopLevel("foo")` members in the Scala.js code are exported from the modules that Scala.js generates.
-They can be imported in `.js` and `.ts` files with the usual JavaScript `import` syntax.
+```typescript
+import { defineConfig } from 'vite';
+import { scalajsPlugin } from '@scala-js/vite-plugin-scalajs';
 
-For example, given the following Scala.js definition:
-
-```scala
-import scala.scalajs.js
-import scala.scalajs.js.annotation._
-
-@JSExportTopLevel("ScalaJSLib")
-class ScalaJSLib extends js.Object {
-  def square(x: Double): Double = x * x
-}
+export default defineConfig({
+  plugins: [
+    scalajsPlugin({
+      projects: [
+        {
+          projectID: 'example',
+          buildTool: {
+            tool: 'mill'
+          }
+        }
+      ]
+    })
+  ]
+});
 ```
 
-we can import and use it as
+### Mixed SBT and Mill Projects
+
+```typescript
+import { defineConfig } from 'vite';
+import { scalajsPlugin } from '@scala-js/vite-plugin-scalajs';
+
+export default defineConfig({
+  plugins: [
+    scalajsPlugin({
+      projects: [
+        {
+          projectID: 'backend',
+          buildTool: {
+            tool: 'sbt'
+          }
+        },
+        {
+          projectID: 'frontend',
+          buildTool: {
+            tool: 'mill'
+          }
+        }
+      ]
+    })
+  ]
+});
+```
+
+## Configuration Options
+
+### Plugin Options
+
+- `projects`: Array of Scala.js project configurations
+- `projectRoot`: Root directory of the Scala project (auto-detected if not provided)
+- `cwd`: Working directory for build tool commands (optional)
+- `reloadThrottleMs`: Minimum time in milliseconds between file change reloads (default: 2000)
+
+### Project Configuration
+
+- `projectID`: Project identifier (used for URI prefix and build tool targeting)
+- `buildTool`: Build tool configuration
+  - `tool`: Either `'sbt'` or `'mill'`
+  - `script`: Custom script name (optional, defaults to `'sbt'` or `'mill'`)
+- `uriPrefix`: Custom URI prefix for imports (optional, defaults to `projectID:`)
+
+## Usage in Code
+
+Import Scala.js modules using the configured URI prefix:
+
+```typescript
+// Using projectID as prefix (default)
+import 'myProject:main.js';
+
+// Using custom prefix
+import 'custom:main.js';
+```
+
+## Development vs Production
+
+The plugin automatically detects the Vite mode:
+- **Development**: Uses `fastLinkJS` (SBT) or `fastLinkJS` (Mill)
+- **Production**: Uses `fullLinkJS` (SBT) or `fullLinkJS` (Mill)
+
+## Examples
+
+### Getting Started
+- **[Getting Started Guide](examples/getting-started.md)**: Complete step-by-step setup for new projects
+
+### Working Examples
+- `test/mill-project/`: Mill-based Scala.js project with Vite configuration
+- `test/sbt-project/`: SBT-based Scala.js project with multiple modules
+
+### Complete Example: Mill Project
+
+```typescript
+// vite.config.ts
+import { defineConfig } from 'vite';
+import { scalajsPlugin } from '@scala-js/vite-plugin-scalajs';
+
+export default defineConfig({
+  plugins: [
+    scalajsPlugin({
+      projects: [
+        {
+          projectID: 'example',
+          buildTool: {
+            tool: 'mill',
+            script: './mill-assembly.jar' // optional, defaults to './mill'
+          },
+          uriPrefix: 'millexample' // optional, defaults to projectID
+        }
+      ]
+    })
+  ]
+});
+```
+
+```html
+<!-- index.html -->
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Scala.js + Vite</title>
+</head>
+<body>
+  <div id="app"></div>
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>
+```
 
 ```javascript
-import { ScalaJSLib } from 'scalajs:main.js';
+// src/main.js
+import 'mill.example:main.js';
 
-const lib = new ScalaJSLib();
-console.log(lib.square(5)); // 25
+// Your JavaScript code here
+console.log('Hello from Vite + Scala.js!');
 ```
 
-### Exports in other modules
+## API Reference
 
-By default, `@JSExportTopLevel("Foo")` exports `Foo` from the `main` module, which is why we import from `scalajs:main.js`.
-We can also split the Scala.js exports into several modules.
-For example,
+### Types
 
-```scala
-import scala.scalajs.js
-import scala.scalajs.js.annotation._
+- `ScalaJSPluginOptions`: Main plugin configuration
+- `ScalaJSProject`: Individual project configuration
+- `BuildTool`: Union type for SBT or Mill build tools
+- `SbtBuildTool`: SBT-specific configuration
+- `MillBuildTool`: Mill-specific configuration
 
-@JSExportTopLevel("ScalaJSLib", "library")
-class ScalaJSLib extends js.Object {
-  def square(x: Double): Double = x * x
-}
+### Functions
+
+- `scalajsPlugin(options)`: Main plugin function
+
+## Troubleshooting
+
+### Common Issues
+
+1. **Build tool not found**: Ensure SBT or Mill is installed and available in your PATH or that the `script` config refers to the correct file
+2. **Output directory not found**: The plugin waits for build tools to create output directories
+3. **Excessive reloads**: Adjust `reloadThrottleMs` to reduce reload frequency
+4. **Import resolution fails**: Check that your `uriPrefix` or `projectID` is correct and that the script exists the output directory
+
+### Debug Mode
+
+Enable debug logging by setting the `DEBUG` environment variable:
+
+```bash
+DEBUG=1 npm test
 ```
 
-can be imported with
+## Contributing
 
-```javascript
-import { ScalaJSLib } from 'scalajs:library.js';
-```
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Add tests
+5. Submit a pull request
 
-The Scala.js documentation contains [more information about module splitting](https://www.scala-js.org/doc/project/module.html).
+## License
+
+Apache 2.0
