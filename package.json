@@ -53,5 +53,8 @@
     "LICENSE",
     "README.md",
     "package.json"
-  ]
+  ],
+  "engines": {
+    "node": ">=20.19.13"
+  }
 }
