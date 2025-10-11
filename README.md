@@ -202,7 +202,6 @@ console.log('Hello from Vite + Scala.js!');
 2. **Output directory not found**: The plugin waits for build tools to create output directories
 3. **Excessive reloads**: Adjust `reloadThrottleMs` to reduce reload frequency
 4. **Import resolution fails**: Check that your `uriPrefix` or `projectID` is correct and that the script exists the output directory
-5. **ERR_FEATURE_UNAVAILABLE_ON_PLATFORM**: You need a node version >=v19.1.0 on Linux, which is more recent than some distros supply
 
 ### Debug Mode
 
