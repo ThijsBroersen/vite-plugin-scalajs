@@ -1,9 +1,15 @@
 import { ChildProcess, spawn, SpawnOptions } from 'child_process'
 import type { SbtBuildTool } from './types.js'
 
+const ANSI_ESCAPE = /\u001b\[[0-9;]*[A-Za-z]/g
+
+function stripAnsi(text: string): string {
+  return text.replace(ANSI_ESCAPE, '')
+}
+
 /** Extract an absolute filesystem path from a single line of sbt output. */
 function extractPathFromLine(line: string): string | null {
-  const trimmed = line.replace(/^\[info\]\s*/, '').trim()
+  const trimmed = stripAnsi(line).replace(/^\[info\]\s*/, '').trim()
   if (!trimmed) return null
 
   if (/^\/[^\s]*$/.test(trimmed) || /^[A-Za-z]:[\\/][^\s]*$/.test(trimmed)) {
@@ -20,20 +26,30 @@ function extractPathFromLine(line: string): string | null {
 }
 
 function isLinkerOutputDir(path: string): boolean {
-  return path.endsWith('-fastopt') || path.endsWith('-opt')
+  return /-(?:fastopt|opt)$/.test(path)
 }
 
-function extractSbtPrintOutput(fullOutput: string): string {
+function extractPathsFromOutput(fullOutput: string): string[] {
   const candidates: string[] = []
 
-  for (const line of fullOutput.trimEnd().split('\n')) {
-    if (!line || line.includes('\u001b')) continue
-    if (line.startsWith('[success]') || line.startsWith('[error]')) continue
-    if (line.startsWith('[')) continue
+  for (const rawLine of fullOutput.split('\n')) {
+    const line = stripAnsi(rawLine).trim()
+    if (!line || line.startsWith('[success]') || line.startsWith('[error]')) continue
 
     const path = extractPathFromLine(line)
     if (path) candidates.push(path)
   }
+
+  if (candidates.length === 0) {
+    const fallback = stripAnsi(fullOutput).match(/(\/[^\s\[\]\u001b]+)/g)
+    if (fallback) candidates.push(...fallback)
+  }
+
+  return candidates
+}
+
+function extractSbtPrintOutput(fullOutput: string): string {
+  const candidates = extractPathsFromOutput(fullOutput)
 
   if (candidates.length === 0) {
     throw new Error(`Could not parse sbt print output:\n${fullOutput}`)
@@ -46,6 +62,11 @@ function extractSbtPrintOutput(fullOutput: string): string {
   }
 
   return candidates[candidates.length - 1]
+}
+
+/** @internal Exported for unit tests. */
+export function parseSbtPrintOutput(fullOutput: string): string {
+  return extractSbtPrintOutput(fullOutput)
 }
 
 function shouldLogSbtOutput(): boolean {
@@ -95,20 +116,28 @@ export function _build(task: string, buildTool: SbtBuildTool, cwd?: string): [Pr
         reject(new Error(`sbt invocation for Scala.js compilation could not start. Is it installed?\n${err}`))
       })
       child.on('close', (code) => {
-        if (code !== 0) {
-          const errorLines = fullOutput.split('\n').filter((line) => line.includes('[error]'))
-          let errorMessage = `sbt build failed with exit code ${code}`
-          if (errorLines.length > 0) {
-            errorMessage += `\n${errorLines.join('\n')}`
-          } else if (fullOutput.includes('Not a valid command: --')) {
-            errorMessage += '\nCause: Your sbt launcher script version is too old (<1.3.3).'
-            errorMessage +=
-              '\nFix: Re-install the latest version of sbt launcher script from https://www.scala-sbt.org/'
+        const finish = () => {
+          if (code !== 0) {
+            const errorLines = fullOutput.split('\n').filter((line) => line.includes('[error]'))
+            let errorMessage = `sbt build failed with exit code ${code}`
+            if (errorLines.length > 0) {
+              errorMessage += `\n${errorLines.join('\n')}`
+            } else if (fullOutput.includes('Not a valid command: --')) {
+              errorMessage += '\nCause: Your sbt launcher script version is too old (<1.3.3).'
+              errorMessage +=
+                '\nFix: Re-install the latest version of sbt launcher script from https://www.scala-sbt.org/'
+            }
+            reject(new Error(errorMessage))
+            return
           }
-          reject(new Error(errorMessage))
-          return
+          try {
+            resolve(extractSbtPrintOutput(fullOutput))
+          } catch (err) {
+            reject(err)
+          }
         }
-        resolve(extractSbtPrintOutput(fullOutput))
+        // Allow any pending stdout/stderr chunks to be appended before parsing.
+        setImmediate(finish)
       })
     }),
     child,
@@ -138,5 +167,9 @@ export function sbtBuildAndReturnOutputDir(
 export function sbtBuild(projectID: string, buildTool: SbtBuildTool, isDev: boolean, cwd?: string): ChildProcess {
   const task = getSbtLinkTask(projectID, isDev)
   const watchOrNot = isDev ? '~' : ''
-  return _build(watchOrNot + task, buildTool, cwd)[1]
+  const [promise, child] = _build(watchOrNot + task, buildTool, cwd)
+  promise.catch(() => {
+    /* background watch process; errors are surfaced via buildStart on next reload */
+  })
+  return child
 }
