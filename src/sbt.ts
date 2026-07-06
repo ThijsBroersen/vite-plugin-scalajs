@@ -1,19 +1,51 @@
 import { ChildProcess, spawn, SpawnOptions } from 'child_process'
 import type { SbtBuildTool } from './types.js'
 
+/** Extract an absolute filesystem path from a single line of sbt output. */
+function extractPathFromLine(line: string): string | null {
+  const trimmed = line.replace(/^\[info\]\s*/, '').trim()
+  if (!trimmed) return null
+
+  if (/^\/[^\s]*$/.test(trimmed) || /^[A-Za-z]:[\\/][^\s]*$/.test(trimmed)) {
+    return trimmed
+  }
+
+  const unixMatch = trimmed.match(/(\/[^\s\[\]\u001b]+)/)
+  if (unixMatch) return unixMatch[1]
+
+  const windowsMatch = trimmed.match(/([A-Za-z]:[\\/][^\s\[\]\u001b]+)/)
+  if (windowsMatch) return windowsMatch[1]
+
+  return null
+}
+
+function isLinkerOutputDir(path: string): boolean {
+  return path.endsWith('-fastopt') || path.endsWith('-opt')
+}
+
 function extractSbtPrintOutput(fullOutput: string): string {
-  const lines = fullOutput.trimEnd().split('\n')
-  for (let i = lines.length - 1; i >= 0; i--) {
-    const line = lines[i].replace(/^\[info\]\s*/, '').trim()
-    if (!line || line.includes('\u001b') || line.startsWith('[success]') || line.startsWith('[error]')) {
-      continue
-    }
+  const candidates: string[] = []
+
+  for (const line of fullOutput.trimEnd().split('\n')) {
+    if (!line || line.includes('\u001b')) continue
+    if (line.startsWith('[success]') || line.startsWith('[error]')) continue
     if (line.startsWith('[')) continue
-    if (line.startsWith('/') || /^[A-Za-z]:[\\/]/.test(line)) {
-      return line
+
+    const path = extractPathFromLine(line)
+    if (path) candidates.push(path)
+  }
+
+  if (candidates.length === 0) {
+    throw new Error(`Could not parse sbt print output:\n${fullOutput}`)
+  }
+
+  for (let i = candidates.length - 1; i >= 0; i--) {
+    if (isLinkerOutputDir(candidates[i])) {
+      return candidates[i]
     }
   }
-  throw new Error(`Could not parse sbt print output:\n${fullOutput}`)
+
+  return candidates[candidates.length - 1]
 }
 
 function shouldLogSbtOutput(): boolean {
@@ -58,30 +90,25 @@ export function _build(task: string, buildTool: SbtBuildTool, cwd?: string): [Pr
 
   return [
     new Promise((resolve, reject) => {
-      child.on('exit', (code) => {
-        if (code === 0) {
-          resolve(extractSbtPrintOutput(fullOutput))
-        } else {
-          const errorLines = fullOutput.split('\n').filter((line) => line.startsWith('[error]'))
-          reject(new Error(`sbt build failed with exit code ${code}\n${errorLines.join('\n')}`))
-        }
-      })
       child.on('error', (err) => {
         console.error(`sbt invocation for Scala.js compilation could not start. Is it installed?\n${err}`)
         reject(new Error(`sbt invocation for Scala.js compilation could not start. Is it installed?\n${err}`))
       })
       child.on('close', (code) => {
         if (code !== 0) {
-          let errorMessage = `sbt invocation for Scala.js compilation failed with exit code ${code}.`
-          if (fullOutput.includes('Not a valid command: --')) {
+          const errorLines = fullOutput.split('\n').filter((line) => line.includes('[error]'))
+          let errorMessage = `sbt build failed with exit code ${code}`
+          if (errorLines.length > 0) {
+            errorMessage += `\n${errorLines.join('\n')}`
+          } else if (fullOutput.includes('Not a valid command: --')) {
             errorMessage += '\nCause: Your sbt launcher script version is too old (<1.3.3).'
             errorMessage +=
               '\nFix: Re-install the latest version of sbt launcher script from https://www.scala-sbt.org/'
           }
           reject(new Error(errorMessage))
-        } else {
-          resolve(extractSbtPrintOutput(fullOutput))
+          return
         }
+        resolve(extractSbtPrintOutput(fullOutput))
       })
     }),
     child,
