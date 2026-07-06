@@ -38,10 +38,11 @@ export function startMillBuildTask(
 }
 
 export function getMillTargetDir(projectID: string, workspaceRoot: string, isDev: boolean): string {
+  const millOutputDir = process.env.MILL_OUTPUT_DIR || 'out'
   if (isDev) {
-    return join(workspaceRoot, 'out', projectID.split('.').join('/'), 'fastLinkJS.dest')
+    return join(workspaceRoot, millOutputDir, projectID.split('.').join('/'), 'fastLinkJS.dest')
   } else {
-    return join(workspaceRoot, 'out', projectID.split('.').join('/'), 'fullLinkJS.dest')
+    return join(workspaceRoot, millOutputDir, projectID.split('.').join('/'), 'fullLinkJS.dest')
   }
 }
 

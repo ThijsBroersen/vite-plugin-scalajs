@@ -1,6 +1,6 @@
 {
   "name": "@scala-js/vite-plugin-scalajs",
-  "version": "2.0.4",
+  "version": "2.0.5",
   "description": "Vite plugin for integration of Scala.js",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
