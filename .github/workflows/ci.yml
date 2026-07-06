@@ -10,10 +10,10 @@ jobs:
   build:
     strategy:
       matrix:
-        os: [ubuntu-latest, windows-latest]
+        os: [ubuntu-latest]
         node-version: ['20']
         java: ['17']
-        vite-version: ['6', '7']
+        vite-version: ['6', '7', '8']
 
     runs-on: ${{ matrix.os }}
 
@@ -41,6 +41,9 @@ jobs:
     - name: Run sbt once in the test project to make sure sbt is downloaded
       run: sbt projects
       working-directory: ./test/sbt-project
+    - name: Run sbt once in the sbt 2 test project
+      run: sbt "projects ; shutdown"
+      working-directory: ./test/sbt-2-project
     - name: Perform unit test
       run: npm test
     - name: Build

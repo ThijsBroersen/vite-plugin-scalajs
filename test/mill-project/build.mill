@@ -4,11 +4,11 @@ import scalajslib.*
 import scalajslib.api.*
 
 object example extends ScalaJSModule {
-  def scalaVersion = "3.7.2"
-  def scalaJSVersion = "1.19.0"
+  def scalaVersion = "3.8.4"
+  def scalaJSVersion = "1.22.0"
 
   def mvnDeps = Seq(
-    mvn"org.scala-js::scalajs-dom::2.8.0"
+    mvn"org.scala-js::scalajs-dom::2.8.1"
   )
   
   def sources = Task.Sources("src/scala")

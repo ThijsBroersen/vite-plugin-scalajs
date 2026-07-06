@@ -17,10 +17,14 @@ The `test/` directory contains complete working examples:
 - Working HTML and JavaScript entry points
 - Comprehensive README with setup instructions
 
-### SBT Project (`test/sbt-project/`)
+### SBT Project (`test/sbt-project/`, sbt 1.x)
 - SBT-based Scala.js project with multiple modules
 - Examples of different project configurations
 - Test cases for various scenarios
+
+### SBT 2 Project (`test/sbt-2-project/`, sbt 2.x)
+- Same layout as the sbt 1.x fixture, using sbt 2.0.1
+- Verifies linker output discovery under the sbt 2 `target/out/` layout
 
 ## Key Improvements Made
 

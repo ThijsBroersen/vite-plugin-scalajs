@@ -2,7 +2,7 @@ import { watch } from 'fs'
 import type { Plugin, ViteDevServer, PluginOption } from 'vite'
 import { Match } from 'effect'
 import type { ScalaJSPluginOptions, BuildTool } from './types.js'
-import { sbtBuildAndReturnOutputDir, sbtBuild, getSbtTask } from './sbt.js'
+import { sbtBuildAndReturnOutputDir, sbtBuild, getSbtLinkTask } from './sbt.js'
 import { startMillBuildTask, getMillTargetDir } from './mill.js'
 import { createThrottledWatcherWithRetry } from './util.js'
 import { ChildProcess } from 'child_process'
@@ -114,7 +114,7 @@ export default function scalajsPlugin(options: ScalaJSPluginOptions = { projects
           Match.when({ tool: 'sbt' }, (buildTool) => {
             // SBT projects are handled in buildStart, no additional setup needed here
             if (isDev) {
-              console.info(`🔍 Scala.js plugin: start SBT task in watch mode: ~${getSbtTask(projectID, isDev)}`)
+              console.info(`🔍 Scala.js plugin: start SBT task in watch mode: ~${getSbtLinkTask(projectID, isDev)}`)
               const compileTask = sbtBuild(projectID, buildTool, isDev, cwd)
               if (compileTask) backgroundProcesses.push({ ref: compileTask, name: `SBT ${projectID}` })
 

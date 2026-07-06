@@ -4,7 +4,7 @@ A Vite plugin that integrates Scala.js projects built with either SBT or Mill bu
 
 ## Features
 
-- **Multi-build tool support**: Works with both SBT and Mill
+- **Multi-build tool support**: Works with both SBT (1.x and 2.x) and Mill
 - **Automatic file watching**: Watches Scala.js output directories and triggers Vite reloads
 - **Development and production modes**: Supports both fast and full linking
 - **Flexible configuration**: Multiple projects with different build tools
@@ -131,7 +131,8 @@ The plugin automatically detects the Vite mode:
 
 ### Working Examples
 - `test/mill-project/`: Mill-based Scala.js project with Vite configuration
-- `test/sbt-project/`: SBT-based Scala.js project with multiple modules
+- `test/sbt-project/`: SBT 1.x-based Scala.js project with multiple modules
+- `test/sbt-2-project/`: SBT 2.x-based Scala.js project with multiple modules
 
 ### Complete Example: Mill Project
 

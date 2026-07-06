@@ -22,10 +22,10 @@ This guide will help you set up a new project using the Vite Scala.js plugin wit
    ```scala
    enablePlugins(ScalaJSPlugin)
    
-   scalaVersion := "3.7.2"
+   scalaVersion := "3.8.4"
    scalaJSUseMainModuleInitializer := true
    
-   libraryDependencies += "org.scala-js" %%% "scalajs-dom" % "2.8.0"
+   libraryDependencies += "org.scala-js" %%% "scalajs-dom" % "2.8.1"
    ```
 
 3. **Initialize npm project**:
@@ -115,11 +115,11 @@ This guide will help you set up a new project using the Vite Scala.js plugin wit
    import scalajslib.*
 
    object example extends ScalaJSModule {
-     def scalaVersion = "3.7.2"
-     def scalaJSVersion = "1.19.0"
+     def scalaVersion = "3.8.4"
+     def scalaJSVersion = "1.22.0"
      
      def mvnDeps = Seq(
-       mvn"org.scala-js::scalajs-dom::2.8.0"
+       mvn"org.scala-js::scalajs-dom::2.8.1"
      )
    }
    ```

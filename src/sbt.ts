@@ -1,6 +1,21 @@
 import { ChildProcess, spawn, SpawnOptions } from 'child_process'
 import type { SbtBuildTool } from './types.js'
 
+function extractSbtPrintOutput(fullOutput: string): string {
+  const lines = fullOutput.trimEnd().split('\n')
+  for (let i = lines.length - 1; i >= 0; i--) {
+    const line = lines[i].replace(/^\[info\]\s*/, '').trim()
+    if (!line || line.includes('\u001b') || line.startsWith('[success]') || line.startsWith('[error]')) {
+      continue
+    }
+    if (line.startsWith('[')) continue
+    if (line.startsWith('/') || /^[A-Za-z]:[\\/]/.test(line)) {
+      return line
+    }
+  }
+  throw new Error(`Could not parse sbt print output:\n${fullOutput}`)
+}
+
 // Utility to invoke a given sbt task and fetch its output
 export function _build(task: string, buildTool: SbtBuildTool, cwd?: string): [Promise<string>, ChildProcess] {
   const args = ['--batch', '-no-colors', '-Dsbt.supershell=false', `print ${task}`]
@@ -31,7 +46,7 @@ export function _build(task: string, buildTool: SbtBuildTool, cwd?: string): [Pr
     new Promise((resolve, reject) => {
       child.on('exit', (code) => {
         if (code === 0) {
-          resolve(fullOutput.trimEnd().split('\n').at(-1)!)
+          resolve(extractSbtPrintOutput(fullOutput))
         } else {
           const errorLines = fullOutput.split('\n').filter((line) => line.startsWith('[error]'))
           reject(new Error(`sbt build failed with exit code ${code}\n${errorLines.join('\n')}`))
@@ -51,7 +66,7 @@ export function _build(task: string, buildTool: SbtBuildTool, cwd?: string): [Pr
           }
           reject(new Error(errorMessage))
         } else {
-          resolve(fullOutput.trimEnd().split('\n').at(-1)!)
+          resolve(extractSbtPrintOutput(fullOutput))
         }
       })
     }),
@@ -61,6 +76,11 @@ export function _build(task: string, buildTool: SbtBuildTool, cwd?: string): [Pr
 
 export function getSbtTask(projectID: string, isDev: boolean): string {
   const task = isDev ? 'fastLinkJSOutput' : 'fullLinkJSOutput'
+  return `${projectID}/${task}`
+}
+
+export function getSbtLinkTask(projectID: string, isDev: boolean): string {
+  const task = isDev ? 'fastLinkJS' : 'fullLinkJS'
   return `${projectID}/${task}`
 }
 
@@ -75,7 +95,7 @@ export function sbtBuildAndReturnOutputDir(
 }
 
 export function sbtBuild(projectID: string, buildTool: SbtBuildTool, isDev: boolean, cwd?: string): ChildProcess {
-  const task = getSbtTask(projectID, isDev)
+  const task = getSbtLinkTask(projectID, isDev)
   const watchOrNot = isDev ? '~' : ''
   return _build(watchOrNot + task, buildTool, cwd)[1]
 }
