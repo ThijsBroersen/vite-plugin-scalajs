@@ -1,0 +1,15 @@
+{
+  "name": "mill-scalajs-example",
+  "version": "1.0.0",
+  "description": "Example Scala.js project using Mill build tool",
+  "type": "module",
+  "main": "src/js/index.js",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "devDependencies": {
+    "vite": "^7.3.6"
+  }
+}

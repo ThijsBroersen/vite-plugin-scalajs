@@ -1,52 +1,61 @@
-name: Node.js test and Build
+name: CI
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
   pull_request:
-    branches: [ main ]
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
-  build:
+  test:
     strategy:
+      fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest]
-        node-version: ['18']
-        java: ['8']
-        vite-version: ['4', '5', '6']
-        include:
-          - os: ubuntu-latest
-            node-version: '20'
-            java: '8'
-            vite-version: '7'
+        vite-version: ['6', '7', '8']
 
-    runs-on: ${{ matrix.os }}
+    runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v3
-    - name: Use Node.js ${{ matrix.node-version }}
-      uses: actions/setup-node@v3
-      with:
-        node-version: ${{ matrix.node-version }}
-    - name: Set up JDK ${{ matrix.java }}
-      uses: coursier/setup-action@v1
-      with:
-        jvm: temurin:1.${{ matrix.java }}
-        apps: sbt
+      - uses: actions/checkout@v7
 
-    - name: Cache dependencies
-      uses: actions/cache@v3
-      with:
-        path: |
-          **/node_modules
-        key: ${{ runner.os }}-${{ hashFiles('**/package-lock.json') }}
+      - uses: pnpm/action-setup@v6
+        with:
+          version: 11.10.0
 
-    - name: Install dependencies with Vite ${{ matrix.vite-version }}
-      run: npm install -D @types/node@${{ matrix.node-version }} && npm install vite@${{ matrix.vite-version }}
-    - name: Run sbt once in the test project to make sure sbt is downloaded
-      run: sbt projects
-      working-directory: ./test/testproject
-    - name: Perform unit test
-      run: npm test
-    - name: Build
-      run: npm run build
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Set up JDK 21
+        uses: coursier/setup-action@v1
+        with:
+          jvm: temurin:1.21
+          apps: sbt
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Vite ${{ matrix.vite-version }} for compatibility matrix
+        run: pnpm add -D vite@${{ matrix.vite-version }}
+
+      - name: Run sbt once in the test project
+        run: sbt projects
+        working-directory: ./test/sbt-project
+
+      - name: Run sbt once in the sbt 2 test project
+        run: sbt "projects ; shutdown"
+        working-directory: ./test/sbt-2-project
+
+      - name: Build
+        run: pnpm build
+
+      - name: Test
+        run: pnpm test

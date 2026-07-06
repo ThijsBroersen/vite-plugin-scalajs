@@ -1,0 +1,20 @@
+lazy val commonSettings = Def.settings(
+  scalaVersion := "3.8.4",
+  scalaJSUseMainModuleInitializer := true,
+)
+
+lazy val testproject = project.in(file("."))
+  .enablePlugins(ScalaJSPlugin)
+  .settings(commonSettings)
+
+lazy val otherProject = project.in(file("other-project"))
+  .enablePlugins(ScalaJSPlugin)
+  .settings(commonSettings)
+
+// This project does not link because it has no @main entry point
+lazy val invalidProject = project.in(file("invalid-project"))
+  .enablePlugins(ScalaJSPlugin)
+  .settings(
+    commonSettings,
+    scalaJSUseMainModuleInitializer := true,
+  )
