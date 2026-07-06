@@ -38,7 +38,7 @@
     "url": "https://github.com/thijsbroersen/vite-plugin-scalajs/issues"
   },
   "homepage": "https://github.com/thijsbroersen/vite-plugin-scalajs#readme",
-  "packageManager": "pnpm@9.15.0",
+  "packageManager": "pnpm@11.10.0",
   "publishConfig": {
     "access": "public",
     "registry": "https://registry.npmjs.org/"
