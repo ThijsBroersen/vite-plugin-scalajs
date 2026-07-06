@@ -37,14 +37,14 @@ jobs:
         key: ${{ runner.os }}-${{ hashFiles('**/package-lock.json') }}
 
     - name: Install dependencies with Vite ${{ matrix.vite-version }}
-      run: npm install -D @types/node@${{ matrix.node-version }} && npm install vite@${{ matrix.vite-version }}
+      run: pnpm install -D @types/node@${{ matrix.node-version }} && pnpm install vite@${{ matrix.vite-version }}
     - name: Run sbt once in the test project to make sure sbt is downloaded
       run: sbt projects
       working-directory: ./test/sbt-project
     - name: Run sbt once in the sbt 2 test project
       run: sbt "projects ; shutdown"
       working-directory: ./test/sbt-2-project
-    - name: Perform unit test
-      run: npm test
     - name: Build
-      run: npm run build
+      run: pnpm build
+    - name: Perform unit test
+      run: pnpm test
