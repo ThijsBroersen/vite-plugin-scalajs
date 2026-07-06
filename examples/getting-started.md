@@ -31,13 +31,13 @@ This guide will help you set up a new project using the Vite Scala.js plugin wit
 3. **Initialize npm project**:
    ```bash
    npm init -y
-   npm install vite @scala-js/vite-plugin-scalajs
+   npm install vite @thijsbroersen/vite-plugin-scalajs
    ```
 
 4. **Create Vite configuration** (`vite.config.ts`):
    ```typescript
    import { defineConfig } from 'vite';
-   import { scalajsPlugin } from '@scala-js/vite-plugin-scalajs';
+   import { scalajsPlugin } from '@thijsbroersen/vite-plugin-scalajs';
 
    export default defineConfig({
      plugins: [
@@ -127,13 +127,13 @@ This guide will help you set up a new project using the Vite Scala.js plugin wit
 3. **Initialize npm project**:
    ```bash
    npm init -y
-   npm install vite @scala-js/vite-plugin-scalajs
+   npm install vite @thijsbroersen/vite-plugin-scalajs
    ```
 
 4. **Create Vite configuration** (`vite.config.ts`):
    ```typescript
    import { defineConfig } from 'vite';
-   import { scalajsPlugin } from '@scala-js/vite-plugin-scalajs';
+   import { scalajsPlugin } from '@thijsbroersen/vite-plugin-scalajs';
 
    export default defineConfig({
      plugins: [

@@ -23,7 +23,7 @@ export default function scalajsPlugin(options: ScalaJSPluginOptions = { projects
   const scalaJSOutputDirs = new Map<string, string>()
 
   return {
-    name: '@scala-js/vite-plugin-scalajs',
+    name: '@thijsbroersen/vite-plugin-scalajs',
 
     // Vite-specific
     configResolved(resolvedConfig) {

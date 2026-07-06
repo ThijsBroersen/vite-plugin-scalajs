@@ -13,7 +13,12 @@ A Vite plugin that integrates Scala.js projects built with either SBT or Mill bu
 
 ## Installation
 
-IMPORTANT: there is NO published artifact for this FORKED repo yet! To try this repo clone it and import relative `import scalajsPlugin from '../vite-plugin-scalajs/src/index.js'`
+```bash
+pnpm add -D @thijsbroersen/vite-plugin-scalajs
+# or: npm install -D @thijsbroersen/vite-plugin-scalajs
+```
+
+Peer dependency: Vite 5, 6, 7, or 8 (install `vite` in your project).
 
 ## Quick Start
 
@@ -21,7 +26,7 @@ IMPORTANT: there is NO published artifact for this FORKED repo yet! To try this 
 
 ```typescript
 import { defineConfig } from 'vite';
-import { scalajsPlugin } from '@scala-js/vite-plugin-scalajs';
+import { scalajsPlugin } from '@thijsbroersen/vite-plugin-scalajs';
 
 export default defineConfig({
   plugins: [
@@ -43,7 +48,7 @@ export default defineConfig({
 
 ```typescript
 import { defineConfig } from 'vite';
-import { scalajsPlugin } from '@scala-js/vite-plugin-scalajs';
+import { scalajsPlugin } from '@thijsbroersen/vite-plugin-scalajs';
 
 export default defineConfig({
   plugins: [
@@ -65,7 +70,7 @@ export default defineConfig({
 
 ```typescript
 import { defineConfig } from 'vite';
-import { scalajsPlugin } from '@scala-js/vite-plugin-scalajs';
+import { scalajsPlugin } from '@thijsbroersen/vite-plugin-scalajs';
 
 export default defineConfig({
   plugins: [
@@ -139,7 +144,7 @@ The plugin automatically detects the Vite mode:
 ```typescript
 // vite.config.ts
 import { defineConfig } from 'vite';
-import { scalajsPlugin } from '@scala-js/vite-plugin-scalajs';
+import { scalajsPlugin } from '@thijsbroersen/vite-plugin-scalajs';
 
 export default defineConfig({
   plugins: [

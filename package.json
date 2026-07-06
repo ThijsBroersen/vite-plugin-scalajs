@@ -1,16 +1,17 @@
 {
-  "name": "@scala-js/vite-plugin-scalajs",
+  "name": "@thijsbroersen/vite-plugin-scalajs",
   "version": "2.0.5",
   "description": "Vite plugin for integration of Scala.js",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
     "build": "tsc",
-    "test": "vitest run"
+    "test": "vitest run",
+    "prepublishOnly": "pnpm run build"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/scala-js/vite-plugin-scalajs.git"
+    "url": "git+https://github.com/thijsbroersen/vite-plugin-scalajs.git"
   },
   "keywords": [
     "vite",
@@ -34,18 +35,24 @@
   ],
   "license": "Apache-2.0",
   "bugs": {
-    "url": "https://github.com/scala-js/vite-plugin-scalajs/issues"
+    "url": "https://github.com/thijsbroersen/vite-plugin-scalajs/issues"
   },
-  "homepage": "https://github.com/scala-js/vite-plugin-scalajs#readme",
+  "homepage": "https://github.com/thijsbroersen/vite-plugin-scalajs#readme",
+  "packageManager": "pnpm@9.15.0",
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  },
+  "peerDependencies": {
+    "vite": "5 - 8"
+  },
   "devDependencies": {
     "@types/node": "^20.19.43",
     "effect": "^3.21.4",
     "prettier": "^3.9.4",
     "typescript": "5.9.3",
+    "vite": "^7.1.4",
     "vitest": "4.1.9"
-  },
-  "dependencies": {
-    "vite": "5 - 8"
   },
   "type": "module",
   "files": [
