@@ -11,7 +11,10 @@ lazy val otherProject = project.in(file("other-project"))
   .enablePlugins(ScalaJSPlugin)
   .settings(commonSettings)
 
-// This project does not link because it has no main method
+// This project does not link because it has no @main entry point
 lazy val invalidProject = project.in(file("invalid-project"))
   .enablePlugins(ScalaJSPlugin)
-  .settings(commonSettings)
+  .settings(
+    commonSettings,
+    scalaJSUseMainModuleInitializer := true,
+  )

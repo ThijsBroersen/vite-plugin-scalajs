@@ -16,12 +16,16 @@ function extractSbtPrintOutput(fullOutput: string): string {
   throw new Error(`Could not parse sbt print output:\n${fullOutput}`)
 }
 
+function shouldLogSbtOutput(): boolean {
+  return process.env.DEBUG != null && process.env.DEBUG !== ''
+}
+
 // Utility to invoke a given sbt task and fetch its output
 export function _build(task: string, buildTool: SbtBuildTool, cwd?: string): [Promise<string>, ChildProcess] {
   const args = ['--batch', '-no-colors', '-Dsbt.supershell=false', `print ${task}`]
   const options: SpawnOptions = {
     cwd: cwd,
-    stdio: ['ignore', 'pipe', 'inherit'],
+    stdio: ['ignore', 'pipe', 'pipe'],
   }
   console.debug(`🔍 Starting sbt build task with args ${args.join(' ')} in workspace root ${cwd}`)
   const script = buildTool.script || (process.platform === 'win32' ? 'sbt.bat' : 'sbt')
@@ -39,7 +43,17 @@ export function _build(task: string, buildTool: SbtBuildTool, cwd?: string): [Pr
   child.stdout!.setEncoding('utf-8')
   child.stdout!.on('data', (data) => {
     fullOutput += data
-    process.stdout.write(data) // tee on my own stdout
+    if (shouldLogSbtOutput()) {
+      process.stdout.write(data)
+    }
+  })
+
+  child.stderr!.setEncoding('utf-8')
+  child.stderr!.on('data', (data) => {
+    fullOutput += data
+    if (shouldLogSbtOutput()) {
+      process.stderr.write(data)
+    }
   })
 
   return [
