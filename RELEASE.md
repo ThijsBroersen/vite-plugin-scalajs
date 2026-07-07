@@ -74,7 +74,7 @@ You must be logged in as `thijsbroersen` (`npm login`).
 
 After the first publish, set up OIDC so GitHub Actions can publish without a long-lived `NPM_TOKEN`:
 
-1. Open the package on [npmjs.com](https://www.npmjs.com) → **Settings** → **Trusted Publisher**
+1. Open the package on [npmjs.com](https://www.npmjs.com/package/@thijsbroersen/vite-plugin-scalajs) → **Settings** → **Trusted Publisher**
 2. Choose **GitHub Actions**
 3. Set:
    - **Organization or user:** `thijsbroersen`
@@ -85,19 +85,28 @@ After the first publish, set up OIDC so GitHub Actions can publish without a lon
 Requirements for CI publishes:
 
 - GitHub-hosted runner (`ubuntu-latest`)
-- Node.js 24 + npm ≥ 11.5.1 (configured in `release.yml`)
 - Workflow permission `id-token: write`
+- Publish step uses **`npm publish`** — npm Trusted Publishing only supports the npm CLI, not `pnpm publish`
+- pnpm is still used for install, build, and test; only the final upload uses npm
+- npm ≥ 11.5.1 (upgraded in `release.yml`)
+
+Verify your Trusted Publisher settings on npm match exactly:
+
+| Field | Value |
+|-------|--------|
+| User/org | `thijsbroersen` |
+| Repository | `vite-plugin-scalajs` |
+| Workflow filename | `release.yml` |
+| Environment | empty (unless you use a GitHub Environment) |
 
 ### 4. Fallback: NPM_TOKEN
 
-If Trusted Publishing is not configured, add an npm automation token as a repository secret `NPM_TOKEN` and add to the publish step:
+If Trusted Publishing fails, add an npm automation token as repository secret `NPM_TOKEN` and set it before publish:
 
-```yaml
-env:
-  NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+```bash
+pnpm config set "//registry.npmjs.org/:_authToken" "${NPM_TOKEN}"
+pnpm publish --access public --no-git-checks --provenance
 ```
-
-Prefer Trusted Publishing when possible.
 
 ## Local dry-run
 
@@ -115,5 +124,7 @@ The tarball should contain `dist/`, `package.json`, `README.md`, and `LICENSE` o
 | Problem | Likely cause |
 |---------|----------------|
 | `Tag vX.Y.Z does not match package.json` | Forgot to bump `version` before tagging |
-| `ENEEDAUTH` / `E404` on CI publish | Trusted Publisher workflow name or repo mismatch |
+| `grep: invalid option` in release workflow | Pattern `-(beta|…)` passed to grep — fixed with bash `[[ =~ ]]` |
+| `ERR_PNPM_AUTH_TOKEN_EXCHANGE` / `Skipped OIDC` | Use `npm publish` for CI — pnpm OIDC exchange is not supported by npm Trusted Publishing |
+| `E404` / `ENEEDAUTH` on CI publish | Trusted Publisher workflow/repo mismatch — see table in section 3 |
 | Provenance missing | Private repo; provenance requires a public GitHub repo and public package |

@@ -36,4 +36,13 @@ describe("parseSbtPrintOutput", () => {
 `;
     expect(parseSbtPrintOutput(output)).toBe("/tmp/testproject-fastopt");
   });
+
+  it("parses path on a line after [success] (sbt 2 fastopt cache hit)", () => {
+    const output = `[success] elapsed time: 0 s
+/home/runner/work/vite-plugin-scalajs/vite-plugin-scalajs/test/sbt-2-project/target/out/sjs1/scala-3.8.4/testproject/testproject-fastopt
+`;
+    expect(parseSbtPrintOutput(output)).toBe(
+      "/home/runner/work/vite-plugin-scalajs/vite-plugin-scalajs/test/sbt-2-project/target/out/sjs1/scala-3.8.4/testproject/testproject-fastopt"
+    );
+  });
 });

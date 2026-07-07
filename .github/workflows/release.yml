@@ -65,10 +65,10 @@ jobs:
 
       - name: Publish to npm
         run: |
-          if echo "$PKG_VERSION" | grep -qE '-(beta|rc|alpha)'; then
-            pnpm publish --access public --no-git-checks --tag beta
+          if [[ "$PKG_VERSION" =~ -(beta|rc|alpha) ]]; then
+            npm publish --access public --provenance --tag beta
           else
-            pnpm publish --access public --no-git-checks
+            npm publish --access public --provenance
           fi
         env:
           PKG_VERSION: ${{ steps.version.outputs.version }}
