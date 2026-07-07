@@ -127,4 +127,4 @@ The tarball should contain `dist/`, `package.json`, `README.md`, and `LICENSE` o
 | `grep: invalid option` in release workflow | Pattern `-(beta|…)` passed to grep — fixed with bash `[[ =~ ]]` |
 | `ERR_PNPM_AUTH_TOKEN_EXCHANGE` / `Skipped OIDC` | Use `npm publish` for CI — pnpm OIDC exchange is not supported by npm Trusted Publishing |
 | `E404` / `ENEEDAUTH` on CI publish | Trusted Publisher workflow/repo mismatch — see table in section 3 |
-| Provenance missing | Private repo; provenance requires a public GitHub repo and public package |
+| `E422` provenance / `repository.url` mismatch | `package.json` `repository.url` must match GitHub owner casing exactly (e.g. `ThijsBroersen`, not `thijsbroersen`) |

@@ -1,6 +1,6 @@
 {
   "name": "@thijsbroersen/vite-plugin-scalajs",
-  "version": "2.0.7",
+  "version": "2.0.8",
   "description": "Vite plugin for integration of Scala.js",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -11,7 +11,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/thijsbroersen/vite-plugin-scalajs.git"
+    "url": "git+https://github.com/ThijsBroersen/vite-plugin-scalajs.git"
   },
   "keywords": [
     "vite",
@@ -35,9 +35,9 @@
   ],
   "license": "Apache-2.0",
   "bugs": {
-    "url": "https://github.com/thijsbroersen/vite-plugin-scalajs/issues"
+    "url": "https://github.com/ThijsBroersen/vite-plugin-scalajs/issues"
   },
-  "homepage": "https://github.com/thijsbroersen/vite-plugin-scalajs#readme",
+  "homepage": "https://github.com/ThijsBroersen/vite-plugin-scalajs#readme",
   "packageManager": "pnpm@11.10.0",
   "publishConfig": {
     "access": "public",
