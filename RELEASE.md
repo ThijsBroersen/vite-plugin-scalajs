@@ -13,7 +13,7 @@ Releases use [semantic versioning](https://semver.org/) aligned with git tags:
 | `vX.Y.Z-rc.N` | `beta` | `v2.1.0-rc.1` |
 | `X.Y.Z-snapshot.<git-sha>` (CI only) | `snapshot` | `2.1.0-snapshot.45f5833` |
 
-Every push to `main` runs [`.github/workflows/snapshot.yml`](.github/workflows/snapshot.yml): tests, then publishes to npm with dist-tag **`snapshot`**. The tarball version is `{package.json version}-snapshot.{short-sha}`; `package.json` on `main` is not modified.
+Every push to `main` runs the same [`.github/workflows/release.yml`](.github/workflows/release.yml) workflow (snapshot mode): tests, then publishes to npm with dist-tag **`snapshot`**. The tarball version is `{package.json version}-snapshot.{short-sha}`; `package.json` on `main` is not modified. Snapshots use **`release.yml`** on purpose so npm Trusted Publishing does not require a second workflow registration.
 
 Install the latest snapshot:
 
@@ -105,10 +105,10 @@ Verify your Trusted Publisher settings on npm match exactly:
 |-------|--------|
 | User/org | `thijsbroersen` |
 | Repository | `vite-plugin-scalajs` |
-| Workflow filename | `release.yml` and/or `snapshot.yml` |
+| Workflow filename | `release.yml` |
 | Environment | empty (unless you use a GitHub Environment) |
 
-Add **`snapshot.yml`** as a second Trusted Publisher entry (same repo/org) so CI can publish snapshots without a long-lived token.
+Snapshots and stable releases both run **`release.yml`** (push to `main` vs push of a `v*` tag).
 
 ### 4. Fallback: NPM_TOKEN
 

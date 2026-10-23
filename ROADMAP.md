@@ -47,7 +47,7 @@ Open issues on [scala-js/vite-plugin-scalajs](https://github.com/scala-js/vite-p
 
 - [x] Dependency maintenance (Vite 8.3.x, Vitest security patch, pnpm 12).
 - [x] Release **2.0.9** (maintenance PR #3).
-- [x] Snapshot npm publishes on each `main` commit (`snapshot.yml`, dist-tag `snapshot`).
+- [x] Snapshot npm publishes on each `main` commit (`release.yml` snapshot mode, dist-tag `snapshot`).
 - [ ] Stable release **2.1.0** when validated (tag `v2.1.0`; test via `@snapshot` until then).
 - [ ] Add GitHub issue templates + labels (`upstream-parity`, `mill`, `sbt2`, `docs`).
 - [x] README: link to roadmap; resolver-only mode documented.
