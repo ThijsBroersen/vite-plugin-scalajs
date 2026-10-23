@@ -1,5 +1,11 @@
 # Vite Plugin for Scala.js
 
+[![CI (main)](https://github.com/ThijsBroersen/vite-plugin-scalajs/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/ThijsBroersen/vite-plugin-scalajs/actions/workflows/ci.yml?branch=main)
+[![Publish snapshot (main)](https://github.com/ThijsBroersen/vite-plugin-scalajs/actions/workflows/release.yml/badge.svg?branch=main)](https://github.com/ThijsBroersen/vite-plugin-scalajs/actions/workflows/release.yml?branch=main)
+[![Publish release (tag)](https://img.shields.io/github/actions/workflow/status/ThijsBroersen/vite-plugin-scalajs/release.yml?branch=main&event=push&label=publish%20release%20(tag))](https://github.com/ThijsBroersen/vite-plugin-scalajs/actions/workflows/release.yml?query=event%3Apush+is%3Asuccess)
+[![npm latest](https://img.shields.io/npm/v/@thijsbroersen/vite-plugin-scalajs?label=npm%20latest)](https://www.npmjs.com/package/@thijsbroersen/vite-plugin-scalajs/v/latest)
+[![npm snapshot](https://img.shields.io/npm/v/@thijsbroersen/vite-plugin-scalajs/snapshot?label=npm%20snapshot)](https://www.npmjs.com/package/@thijsbroersen/vite-plugin-scalajs/v/snapshot)
+
 A Vite plugin that integrates Scala.js projects built with either SBT or Mill build tools. This plugin automatically watches your Scala.js output directories and triggers Vite reloads when files change, making development seamless.
 
 ## Features
