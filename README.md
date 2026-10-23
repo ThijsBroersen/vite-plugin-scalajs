@@ -217,6 +217,10 @@ Enable debug logging by setting the `DEBUG` environment variable:
 DEBUG=1 npm test
 ```
 
+## Roadmap
+
+See [ROADMAP.md](ROADMAP.md) for upstream parity, open issues, and planned work.
+
 ## Contributing
 
 1. Fork the repository
