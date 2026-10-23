@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { parseSbtPrintOutput } from "../src/sbt.js";
+import { buildSbtOutputFileCommand, parseSbtPrintOutput } from "../src/sbt.js";
 
 const sbt2ProductionOutput = `[info] server was not detected. starting an instance
 [info] welcome to sbt 2.0.1 (Eclipse Adoptium Java 21.0.11)

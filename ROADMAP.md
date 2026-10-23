@@ -52,9 +52,9 @@ Open issues on [scala-js/vite-plugin-scalajs](https://github.com/scala-js/vite-p
 
 ### Phase 2 — High-impact parity with upstream PRs
 
-1. **`scalaJsResolverPlugin` / skip link on build** — cherry-pick or reimplement from [PR #34](https://github.com/scala-js/vite-plugin-scalajs/pull/34) (issue #35).
-2. **Aggregation** — reproduce issue #21 in `test/sbt-project`; merge ideas from [PR #22](https://github.com/scala-js/vite-plugin-scalajs/pull/22).
-3. **SBT output robustness** — evaluate [PR #38](https://github.com/scala-js/vite-plugin-scalajs/pull/38) (temp file for task output) and [PR #37](https://github.com/scala-js/vite-plugin-scalajs/pull/37) (`--server` mode).
+1. **`scalaJsResolverPlugin` / skip link on build** — [x] `scalajsResolverPlugin`, `outputDir` on projects, `SCALAJS_OUTPUT_DIR` (issue #35 / PR #34).
+2. **Aggregation** — [x] `aggregate := false` when reading linker output; fixture `aggregatedProject` in `test/sbt-project` (issue #21 / PR #22).
+3. **SBT output robustness** — [x] temp-file capture instead of stdout parsing (PR #38). [ ] `--server` mode (PR #37) — deferred.
 
 ### Phase 3 — Developer experience
 

@@ -1,8 +1,16 @@
-import { ChildProcess, execFile, spawn, SpawnOptions, type ExecFileException } from 'child_process'
+import { ChildProcess, spawn, type SpawnOptions } from 'node:child_process'
+import { mkdtemp, readFile, rm } from 'node:fs/promises'
+import os from 'node:os'
+import path from 'node:path'
 import type { SbtBuildTool } from './types.js'
 
 const ANSI_ESCAPE = /\u001b\[[0-9;]*[A-Za-z]/g
-const SBT_PRINT_MAX_BUFFER = 10 * 1024 * 1024
+
+export interface SbtInvokeOptions {
+  maxAttempts?: number
+  retryDelayMs?: number
+  onRetry?: (message: string) => void
+}
 
 function stripAnsi(text: string): string {
   return text.replace(ANSI_ESCAPE, '')
@@ -78,85 +86,154 @@ function getSbtScript(buildTool: SbtBuildTool): string {
   return buildTool.script || (process.platform === 'win32' ? 'sbt.bat' : 'sbt')
 }
 
-function sbtPrintArgs(task: string): string[] {
-  return ['--batch', '-no-colors', '-Dsbt.supershell=false', `print ${task}`]
+/** Escape a string as a Scala string literal safe for sbt shell arguments. */
+function scalaString(s: string): string {
+  const escaped = s.replace(/[\u0000- \\"']/g, (c) => '\\u' + c.charCodeAt(0).toString(16).padStart(4, '0'))
+  return '"' + escaped + '"'
 }
 
-function formatSbtExecFailure(err: ExecFileException, fullOutput: string): Error {
-  const code = err.code ?? 'unknown'
-  const errorLines = fullOutput.split('\n').filter((line) => line.includes('[error]'))
-  let errorMessage = `sbt build failed with exit code ${code}`
-  if (errorLines.length > 0) {
-    errorMessage += `\n${errorLines.join('\n')}`
-  } else if (fullOutput.includes('Not a valid command: --')) {
+/** sbt command that writes `${task}` value to a temp file (avoids stdout parsing issues). */
+export function buildSbtOutputFileCommand(task: string, outputFile: string): string {
+  const disableAggregate = `set ${task} / aggregate := false`
+  const writeOutput = `set TaskKey[Unit](${scalaString('scalajsVitePluginCapture')}) := sbt.IO.write(file(${scalaString(outputFile)}), (${task}).value.toString, java.nio.charset.StandardCharsets.UTF_8)`
+  return `${disableAggregate}; ${writeOutput}; scalajsVitePluginCapture`
+}
+
+function sbtBaseArgs(): string[] {
+  return ['--batch', '-no-colors', '-Dsbt.supershell=false']
+}
+
+function formatSpawnFailure(code: number | null, fullOutput: string): Error {
+  let errorMessage = `sbt build failed with exit code ${code ?? 'unknown'}`
+  if (fullOutput.includes('Not a valid command: --')) {
     errorMessage += '\nCause: Your sbt launcher script version is too old (<1.3.3).'
     errorMessage += '\nFix: Re-install the latest version of sbt launcher script from https://www.scala-sbt.org/'
+  }
+  const errorLines = fullOutput.split('\n').filter((line) => line.includes('[error]'))
+  if (errorLines.length > 0) {
+    errorMessage += `\n${errorLines.join('\n')}`
   }
   return new Error(errorMessage)
 }
 
-function runSbtPrintOnce(task: string, buildTool: SbtBuildTool, cwd?: string): Promise<string> {
+function spawnSbtCommand(
+  buildTool: SbtBuildTool,
+  sbtCommand: string,
+  cwd?: string,
+): Promise<{ code: number | null; fullOutput: string }> {
   const script = getSbtScript(buildTool)
-  const args = sbtPrintArgs(task)
-  console.debug(`🔍 Starting sbt print task with args ${args.join(' ')} in workspace root ${cwd}`)
+  const args = [...sbtBaseArgs(), sbtCommand]
+  console.debug(`🔍 Starting sbt with command "${sbtCommand}" in workspace root ${cwd}`)
 
   return new Promise((resolve, reject) => {
-    const callback = (err: ExecFileException | null, stdout: string, stderr: string) => {
-      const fullOutput = stdout + stderr
-      if (shouldLogSbtOutput()) {
-        process.stdout.write(stdout)
-        process.stderr.write(stderr)
-      }
-      if (err) {
-        reject(formatSbtExecFailure(err, fullOutput))
-        return
-      }
-      try {
-        resolve(extractSbtPrintOutput(fullOutput))
-      } catch (parseErr) {
-        reject(parseErr)
-      }
+    const options: SpawnOptions = {
+      cwd,
+      stdio: ['ignore', 'pipe', 'pipe'],
     }
+    const child =
+      process.platform === 'win32'
+        ? spawn(
+            script,
+            args.map((x) => `"${x.replace(/"/g, '""')}"`),
+            { shell: true, ...options },
+          )
+        : spawn(script, args, options)
 
-    if (process.platform === 'win32') {
-      execFile(
-        script,
-        args.map((x) => `"${x}"`),
-        { shell: true, cwd, maxBuffer: SBT_PRINT_MAX_BUFFER, encoding: 'utf-8' },
-        callback,
-      )
-    } else {
-      execFile(script, args, { cwd, maxBuffer: SBT_PRINT_MAX_BUFFER, encoding: 'utf-8' }, callback)
-    }
+    let fullOutput = ''
+    child.stdout?.setEncoding('utf-8')
+    child.stdout?.on('data', (data: string) => {
+      fullOutput += data
+      if (shouldLogSbtOutput()) process.stdout.write(data)
+    })
+    child.stderr?.setEncoding('utf-8')
+    child.stderr?.on('data', (data: string) => {
+      fullOutput += data
+      if (shouldLogSbtOutput()) process.stderr.write(data)
+    })
+
+    child.on('error', (err) => {
+      reject(new Error(`sbt invocation for Scala.js compilation could not start. Is it installed?\n${err}`))
+    })
+    child.on('close', (code) => {
+      resolve({ code, fullOutput })
+    })
   })
 }
 
-async function runSbtPrint(task: string, buildTool: SbtBuildTool, cwd?: string): Promise<string> {
+function isRetryableSbtFailure(fullOutput: string): boolean {
+  return fullOutput.includes('sbt thinks that server is already booting')
+}
+
+async function runSbtPrintOnce(
+  task: string,
+  buildTool: SbtBuildTool,
+  cwd?: string,
+  invokeOptions: SbtInvokeOptions = {},
+): Promise<string> {
+  const baseTmp = os.tmpdir()
+  const myTmp = await mkdtemp(path.join(baseTmp, 'scalajs-vite-plugin-'))
+  const myTmpFile = path.join(myTmp, 'out')
+
   try {
-    return await runSbtPrintOnce(task, buildTool, cwd)
-  } catch (err) {
-    if (!(err instanceof Error) || !err.message.startsWith('Could not parse sbt print output:')) {
-      throw err
+    const sbtCommand = buildSbtOutputFileCommand(task, myTmpFile)
+    const { code, fullOutput } = await spawnSbtCommand(buildTool, sbtCommand, cwd)
+    if (code !== 0) {
+      throw formatSpawnFailure(code, fullOutput)
     }
-    // Rare CI race: sbt exits 0 before the printed path is flushed. Retry once.
-    await new Promise((resolve) => setTimeout(resolve, 1000))
-    return runSbtPrintOnce(task, buildTool, cwd)
+    const raw = (await readFile(myTmpFile, 'utf-8')).trim()
+    if (!raw) {
+      throw new Error(`sbt wrote an empty path for task ${task}`)
+    }
+    return raw
+  } finally {
+    await rm(myTmp, { recursive: true, force: true })
   }
 }
 
+async function runSbtPrint(
+  task: string,
+  buildTool: SbtBuildTool,
+  cwd?: string,
+  invokeOptions: SbtInvokeOptions = {},
+): Promise<string> {
+  const maxAttempts = invokeOptions.maxAttempts ?? buildTool.maxAttempts ?? 1
+  const retryDelayMs = invokeOptions.retryDelayMs ?? buildTool.retryDelayMs ?? 1000
+  const onRetry = invokeOptions.onRetry
+
+  let lastError: unknown
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    try {
+      return await runSbtPrintOnce(task, buildTool, cwd, invokeOptions)
+    } catch (err) {
+      lastError = err
+      const message = err instanceof Error ? err.message : String(err)
+      const output = message
+      if (attempt < maxAttempts - 1 && isRetryableSbtFailure(output)) {
+        onRetry?.(
+          `Scala.js plugin: sbt server was booting, retrying (${attempt + 1}/${maxAttempts - 1})…`,
+        )
+        await new Promise((resolve) => setTimeout(resolve, retryDelayMs))
+        continue
+      }
+      throw err
+    }
+  }
+  throw lastError
+}
+
 function spawnSbt(task: string, buildTool: SbtBuildTool, cwd?: string): ChildProcess {
-  const args = sbtPrintArgs(task)
+  const args = [...sbtBaseArgs(), task]
   const options: SpawnOptions = {
     cwd,
     stdio: ['ignore', 'pipe', 'pipe'],
   }
-  console.debug(`🔍 Starting sbt watch task with args ${args.join(' ')} in workspace root ${cwd}`)
+  console.debug(`🔍 Starting sbt watch task "${task}" in workspace root ${cwd}`)
   const script = getSbtScript(buildTool)
   const child =
     process.platform === 'win32'
       ? spawn(
           script,
-          args.map((x) => `"${x}"`),
+          args.map((x) => `"${x.replace(/"/g, '""')}"`),
           { shell: true, ...options },
         )
       : spawn(script, args, options)
@@ -175,14 +252,22 @@ function spawnSbt(task: string, buildTool: SbtBuildTool, cwd?: string): ChildPro
   return child
 }
 
-export function getSbtTask(projectID: string, isDev: boolean): string {
+function scopedSbtTask(projectID: string, taskName: string): string {
+  const normalized = taskName.includes('/') ? taskName : `Compile/${taskName}`
+  return `${projectID}/${normalized}`
+}
+
+export function getSbtTask(projectID: string, isDev: boolean, customTask?: string): string {
+  if (customTask?.trim()) {
+    return scopedSbtTask(projectID, customTask.trim())
+  }
   const task = isDev ? 'fastLinkJSOutput' : 'fullLinkJSOutput'
-  return `${projectID}/${task}`
+  return scopedSbtTask(projectID, task)
 }
 
 export function getSbtLinkTask(projectID: string, isDev: boolean): string {
   const task = isDev ? 'fastLinkJS' : 'fullLinkJS'
-  return `${projectID}/${task}`
+  return scopedSbtTask(projectID, task)
 }
 
 export function sbtBuildAndReturnOutputDir(
@@ -190,13 +275,14 @@ export function sbtBuildAndReturnOutputDir(
   buildTool: SbtBuildTool,
   isDev: boolean,
   cwd?: string,
+  invokeOptions?: SbtInvokeOptions,
 ): Promise<string> {
-  const task = getSbtTask(projectID, isDev)
-  return runSbtPrint(task, buildTool, cwd)
+  const task = getSbtTask(projectID, isDev, buildTool.outputTask)
+  return runSbtPrint(task, buildTool, cwd, invokeOptions)
 }
 
 export function sbtBuild(projectID: string, buildTool: SbtBuildTool, isDev: boolean, cwd?: string): ChildProcess {
   const task = getSbtLinkTask(projectID, isDev)
-  const watchOrNot = isDev ? '~' : ''
-  return spawnSbt(watchOrNot + task, buildTool, cwd)
+  const watchOrNot = isDev ? `~${task}` : task
+  return spawnSbt(watchOrNot, buildTool, cwd)
 }

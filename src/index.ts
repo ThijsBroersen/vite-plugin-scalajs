@@ -1,4 +1,6 @@
 export { default } from "./plugin.js";
+export { scalajsResolverPlugin } from "./resolver.js";
+export { resolveScalaJsModuleId, uriPrefixKey } from "./resolve.js";
 
 // Types
 export type {
@@ -7,6 +9,8 @@ export type {
   MillBuildTool,
   BuildTool,
   ScalaJSProject,
+  ScalaJSResolverPluginOptions,
+  ScalaJSResolverProject,
   ScalaJSPluginOptions as Options,
 } from "./types.js";
 

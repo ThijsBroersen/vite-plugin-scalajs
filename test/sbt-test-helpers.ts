@@ -8,8 +8,22 @@ export interface RefinedPlugin extends VitePlugin {
     this: void,
     resolvedConfig: { mode: string }
   ) => void | Promise<void>;
-  buildStart: (this: PluginContext, options: {}) => Promise<void>;
+  buildStart:
+    | ((this: PluginContext, options: {}) => Promise<void>)
+    | { handler: (this: PluginContext, options: {}) => Promise<void> };
   resolveId: (this: PluginContext, source: string) => string | null;
+}
+
+export async function callBuildStart(
+  plugin: RefinedPlugin,
+  ctx: PluginContext
+): Promise<void> {
+  const buildStart = plugin.buildStart;
+  if (typeof buildStart === "function") {
+    await buildStart.call(ctx, {});
+    return;
+  }
+  await buildStart.handler.call(ctx, {});
 }
 
 export interface SbtPluginTestConfig {
@@ -73,7 +87,7 @@ export function registerSbtPluginTests(config: SbtPluginTestConfig): void {
       });
 
       await plugin.configResolved.call(undefined, { mode: MODE_PRODUCTION });
-      await plugin.buildStart.call(fakePluginContext, {});
+      await callBuildStart(plugin, fakePluginContext);
 
       expectResolvedMainJs(
         plugin.resolveId.call(fakePluginContext, "testproject:main.js"),
@@ -97,7 +111,7 @@ export function registerSbtPluginTests(config: SbtPluginTestConfig): void {
       });
 
       await plugin.configResolved.call(undefined, { mode: MODE_DEVELOPMENT });
-      await plugin.buildStart.call(fakePluginContext, {});
+      await callBuildStart(plugin, fakePluginContext);
 
       expectResolvedMainJs(
         plugin.resolveId.call(fakePluginContext, "testproject:main.js"),
@@ -109,6 +123,54 @@ export function registerSbtPluginTests(config: SbtPluginTestConfig): void {
         plugin.resolveId.call(fakePluginContext, "testproject/main.js")
       ).toBeNull();
     });
+
+    it(
+      "works with a project that aggregates other Scala.js projects (development)",
+      testOptions,
+      async () => {
+        const [plugin, fakePluginContext] = setup({
+          projects: [
+            {
+              projectID: "aggregatedProject",
+              buildTool: { tool: "sbt" },
+            },
+          ],
+        });
+
+        await plugin.configResolved.call(undefined, { mode: MODE_DEVELOPMENT });
+        await callBuildStart(plugin, fakePluginContext);
+
+        expectResolvedMainJs(
+          plugin.resolveId.call(fakePluginContext, "aggregatedProject:main.js"),
+          "aggregatedproject",
+          MODE_DEVELOPMENT
+        );
+      }
+    );
+
+    it(
+      "works with a project that aggregates other Scala.js projects (production)",
+      testOptions,
+      async () => {
+        const [plugin, fakePluginContext] = setup({
+          projects: [
+            {
+              projectID: "aggregatedProject",
+              buildTool: { tool: "sbt" },
+            },
+          ],
+        });
+
+        await plugin.configResolved.call(undefined, { mode: MODE_PRODUCTION });
+        await callBuildStart(plugin, fakePluginContext);
+
+        expectResolvedMainJs(
+          plugin.resolveId.call(fakePluginContext, "aggregatedProject:main.js"),
+          "aggregatedproject",
+          MODE_PRODUCTION
+        );
+      }
+    );
 
     it("works with a custom URI prefix (development)", testOptions, async () => {
       const [plugin, fakePluginContext] = setup({
@@ -122,7 +184,7 @@ export function registerSbtPluginTests(config: SbtPluginTestConfig): void {
       });
 
       await plugin.configResolved.call(undefined, { mode: MODE_DEVELOPMENT });
-      await plugin.buildStart.call(fakePluginContext, {});
+      await callBuildStart(plugin, fakePluginContext);
 
       expectResolvedMainJs(
         plugin.resolveId.call(fakePluginContext, "customsjs:main.js"),
@@ -150,8 +212,8 @@ export function registerSbtPluginTests(config: SbtPluginTestConfig): void {
 
         await plugin.configResolved.call(undefined, { mode: MODE_PRODUCTION });
 
-        const buildStartResult = plugin.buildStart.call(fakePluginContext, {});
-        await expect(buildStartResult).rejects.toThrowError("sbt build failed");
+        const buildStartResult = callBuildStart(plugin, fakePluginContext);
+        await expect(buildStartResult).rejects.toThrow(/sbt build failed|sbt invocation/);
       }
     );
   });
