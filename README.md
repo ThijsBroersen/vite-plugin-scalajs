@@ -94,6 +94,42 @@ export default defineConfig({
 });
 ```
 
+## Resolver-only mode (skip sbt / Mill linking)
+
+When Scala.js was already linked by sbt (for example inside a larger sbt task), avoid booting another sbt session during `vite build`:
+
+**Option A — dedicated resolver plugin:**
+
+```typescript
+import { defineConfig } from 'vite';
+import { scalajsResolverPlugin } from '@thijsbroersen/vite-plugin-scalajs';
+
+export default defineConfig({
+  plugins: [
+    scalajsResolverPlugin({
+      outputDir: process.env.SCALAJS_OUTPUT_DIR!,
+      uriPrefix: 'scalajs',
+    }),
+  ],
+});
+```
+
+**Option B — `outputDir` on a project** (same plugin, multi-project friendly):
+
+```typescript
+scalajsPlugin({
+  projects: [
+    {
+      projectID: 'client',
+      buildTool: { tool: 'sbt' },
+      outputDir: process.env.SCALAJS_OUTPUT_DIR,
+    },
+  ],
+});
+```
+
+From sbt, run Vite with `SCALAJS_OUTPUT_DIR` set to `fastLinkJSOutput.value` / `fullLinkJSOutput.value`.
+
 ## Configuration Options
 
 ### Plugin Options

@@ -3,6 +3,7 @@ import scalajsPlugin, { ScalaJSPluginOptions } from "../src/index";
 import type { PluginContext } from "rollup";
 import type { Plugin as VitePlugin } from "vite";
 import { getMillTargetDir } from "../src/mill.js";
+import { callBuildStart } from "./sbt-test-helpers.js";
 
 /* This interface refines the VitePlugin with some knowledge about our
  * particular implementation, for easier testing. If we define here something
@@ -14,7 +15,9 @@ interface RefinedPlugin extends VitePlugin {
     this: void,
     resolvedConfig: { mode: string }
   ) => void | Promise<void>;
-  buildStart: (this: PluginContext, options: {}) => Promise<void>;
+  buildStart:
+    | ((this: PluginContext, options: {}) => Promise<void>)
+    | { handler: (this: PluginContext, options: {}) => Promise<void> };
   resolveId: (this: PluginContext, source: string) => string;
 }
 
@@ -57,7 +60,7 @@ describe("scalajsPlugin with Mill", () => {
     });
 
     await plugin.configResolved.call(undefined, { mode: MODE_PRODUCTION });
-    await plugin.buildStart.call(fakePluginContext, {});
+    await callBuildStart(plugin, fakePluginContext);
 
     expect(
       normalizeSlashes(
@@ -83,7 +86,7 @@ describe("scalajsPlugin with Mill", () => {
     });
 
     await plugin.configResolved.call(undefined, { mode: MODE_DEVELOPMENT });
-    await plugin.buildStart.call(fakePluginContext, {});
+    await callBuildStart(plugin, fakePluginContext);
 
     expect(
       normalizeSlashes(
@@ -110,7 +113,7 @@ describe("scalajsPlugin with Mill", () => {
     });
 
     await plugin.configResolved.call(undefined, { mode: MODE_DEVELOPMENT });
-    await plugin.buildStart.call(fakePluginContext, {});
+    await callBuildStart(plugin, fakePluginContext);
 
     expect(
       normalizeSlashes(
