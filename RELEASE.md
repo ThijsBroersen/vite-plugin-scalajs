@@ -11,8 +11,17 @@ Releases use [semantic versioning](https://semver.org/) aligned with git tags:
 | `vX.Y.Z` | `latest` | `v2.0.6` |
 | `vX.Y.Z-beta.N` | `beta` | `v2.1.0-beta.1` |
 | `vX.Y.Z-rc.N` | `beta` | `v2.1.0-rc.1` |
+| `X.Y.Z-snapshot.<git-sha>` (CI only) | `snapshot` | `2.1.0-snapshot.45f5833` |
 
-There are no automatic publishes from `main`. Only pushing a `v*` tag triggers [`.github/workflows/release.yml`](.github/workflows/release.yml).
+Every push to `main` runs [`.github/workflows/snapshot.yml`](.github/workflows/snapshot.yml): tests, then publishes to npm with dist-tag **`snapshot`**. The tarball version is `{package.json version}-snapshot.{short-sha}`; `package.json` on `main` is not modified.
+
+Install the latest snapshot:
+
+```bash
+pnpm add -D @thijsbroersen/vite-plugin-scalajs@snapshot
+```
+
+Stable releases still use git tags only — pushing a `v*` tag triggers [`.github/workflows/release.yml`](.github/workflows/release.yml) and updates **`latest`**.
 
 ## Publishing a stable release
 
@@ -96,8 +105,10 @@ Verify your Trusted Publisher settings on npm match exactly:
 |-------|--------|
 | User/org | `thijsbroersen` |
 | Repository | `vite-plugin-scalajs` |
-| Workflow filename | `release.yml` |
+| Workflow filename | `release.yml` and/or `snapshot.yml` |
 | Environment | empty (unless you use a GitHub Environment) |
+
+Add **`snapshot.yml`** as a second Trusted Publisher entry (same repo/org) so CI can publish snapshots without a long-lived token.
 
 ### 4. Fallback: NPM_TOKEN
 

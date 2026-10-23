@@ -257,6 +257,14 @@ DEBUG=1 npm test
 
 See [ROADMAP.md](ROADMAP.md) for upstream parity, open issues, and planned work.
 
+### Pre-release snapshots
+
+Each push to `main` publishes to npm as dist-tag **`snapshot`** (see [RELEASE.md](RELEASE.md)):
+
+```bash
+pnpm add -D @thijsbroersen/vite-plugin-scalajs@snapshot
+```
+
 ## Contributing
 
 1. Fork the repository
